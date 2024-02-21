@@ -299,10 +299,32 @@ int main()
 		// .:. Shaders .:.
 		// .:: Cube Shader ::.
 		cubeShader.use();
+
 		// .: Light :.
-		cubeShader.setFloat3("objectColor", 1.0f, 0.5f, 0.31f);
-		cubeShader.setFloat3("lightColor" , 1.0f, 0.5f, 0.31f);
+		// . Change color by time .
+		glm::vec3 lightColor;
+		lightColor.x = sin(glfwGetTime() * 2.0f);
+		lightColor.y = sin(glfwGetTime() * 0.7f);
+		lightColor.z = sin(glfwGetTime() * 1.3f);
+
+		glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.5f);
+
 		cubeShader.setFloat3("lightPos", lightPos.x, lightPos.y, lightPos.z);
+		cubeShader.setFloat3("light.ambient", ambientColor.x, ambientColor.y, ambientColor.z);
+		cubeShader.setFloat3("light.diffuse", diffuseColor.x, diffuseColor.y, diffuseColor.z);
+
+		cubeShader.setFloat3("light.specular", 1.0f, 1.0f, 1.0f);
+		
+		
+
+		// .:: Material Color ::.
+		cubeShader.setFloat3("material.ambient", 1.0f, 0.5f, 0.31f);
+		cubeShader.setFloat3("material.diffuse", 1.0f, 0.5f, 0.31f);
+		cubeShader.setFloat3("material.specular", 0.5f, 0.5f, 0.5f);
+		cubeShader.setFloat("material.shininess", 32.0f);
+
+		// .:: Model - View - Projection ::.
 		// .: Model :.
 		model = glm::mat4(1.0f);
 		cubeShader.setMat4("model", model);
@@ -312,6 +334,8 @@ int main()
 		//.: Projection :.
 		projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		cubeShader.setMat4("projection", projection);
+		//.: Camera position vector :.
+		cubeShader.setFloat3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
 		// .: Renderizamos el cubo
 		glBindVertexArray(cubeVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
