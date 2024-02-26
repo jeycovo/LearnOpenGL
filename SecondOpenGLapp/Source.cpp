@@ -187,17 +187,21 @@ int main()
 	// Cualquier llamada al Búfer que hagamos se utilizará para configurar el bufer actualmente enlazado, un Element Buffer Object (EBO)
 	
 	// ...........:: Textura ::...........
-	// .:: Mapa de difusión (diffuse map) ::.
+	// .:: Mapa difuso (diffuse map) ::.
 	unsigned int diffuseMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2.png");
-
+	// .:: Mapa especular ::.
+	unsigned int specularMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2_specular.png");
+	
 	// .:: Textura 2 ::.
 	unsigned int texture2 = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/awesomeface.png");
 	//....................................
 
+	
 	// .: Le decimos a OpenGL que por cada sampler a que texture unit pertenece :.
 	cubeShader.use();												// Hay que activar el shader antes de configurar uniforms
-	cubeShader.setInt("material.diffuse", 0);						
-	cubeShader.setInt("texture2", 1);							    // set it with shader class
+	cubeShader.setInt("material.diffuse",  0);						
+	cubeShader.setInt("material.specular", 1);
+	cubeShader.setInt("texture2", 2);							    // set it with shader class
 
 	// .: Model Matrix :.
 	glm::mat4 model, view, projection;
@@ -227,8 +231,10 @@ int main()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, diffuseMap);
 		
-		
 		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
+
+		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, texture2);
 		
 
