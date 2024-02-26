@@ -211,7 +211,7 @@ int main()
 
 	// .: Light Casters
 	// Movemos la luz ambiental hacia donde toca
-	lightPos = glm::vec3(-0.2f, -1.0f, -0.3f);
+	//lightPos = glm::vec3(-0.2f, -1.0f, -0.3f);
 
 	// .::: Loop de renderizado :::.
 	while (!glfwWindowShouldClose(window))
@@ -245,14 +245,20 @@ int main()
 		// .::: Cube Shader :::.
 		cubeShader.use();
 
-		// .: Light :.
+		// .:: Light ::.
 		glm::vec3 diffuseColor = glm::vec3(0.5f);
 		glm::vec3 ambientColor = glm::vec3(0.2f);
 
-		cubeShader.setFloat3("light.direction", lightPos.x, lightPos.y, lightPos.z);
+		// .:: Properties ::.
+		cubeShader.setFloat3("light.position", lightPos.x, lightPos.y, lightPos.z);
 		cubeShader.setFloat3("light.ambient", ambientColor.x, ambientColor.y, ambientColor.z);
 		cubeShader.setFloat3("light.diffuse", diffuseColor.x, diffuseColor.y, diffuseColor.z);
 		cubeShader.setFloat3("light.specular", 1.0f, 1.0f, 1.0f);
+
+		// .: Attenuation
+		cubeShader.setFloat("light.constant", 1.0f);
+		cubeShader.setFloat("light.linear",   0.09f);
+		cubeShader.setFloat("light.constant", 0.032f);
 
 		// .:: Material Color ::.
 		cubeShader.setFloat("material.shininess", 32.0f);
