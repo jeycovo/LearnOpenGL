@@ -17,6 +17,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
+// .:: Utility Functions ::.
+unsigned int loadTexture(const char* path);
 //-- Settings --
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -185,86 +187,21 @@ int main()
 	// Cualquier llamada al Búfer que hagamos se utilizará para configurar el bufer actualmente enlazado, un Element Buffer Object (EBO)
 	
 	// ...........:: Textura ::...........
-	// .:: Textura 1 ::.
-	// .: Creamos la textura y la vinculamos :.
-	unsigned int texture1;
-	glGenTextures(1, &texture1);
-	std::cout << glGetError() << std::endl;
-	glBindTexture(GL_TEXTURE_2D, texture1);
-	std::cout << glGetError() << std::endl;
-
-	// Establecemos las opciones de texture wrapping/filtering (en el objeto textura vínculado)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// .: Cargamos la imagen y generamos la textura :. 
-	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true);
-	// Cargamos la imagen que queremos acoplar a la textura
-	unsigned char* data = stbi_load("C:/Users/Unreal DEP/Documents/LibraryNexus/textures/container.jpg", &width, &height, &nrChannels, 0);
-
-	if (stbi_failure_reason()) {
-		std::cout << stbi_failure_reason() << std::endl;
-	}
-
-	if (data)
-	{
-		// Generamos la textura usando los datos de la imagen previamente cargada
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		std::cout << glGetError() << std::endl;
-
-		// Generamos el MipMap
-		glGenerateMipmap(GL_TEXTURE_2D);
-		std::cout << glGetError() << std::endl;
-
-		std::cout << "Texture 1 loaded succesfully" << std::endl;
-	}
-	else
-	{
-		std::cout << "Failed to load texture 1" << std::endl;
-	}
-
-	// .:: Textura 2) ::.
-	// .: Creamos la textura y la vinculamos :.
-	unsigned int texture2;
-	glGenTextures(1, &texture2);
-	glBindTexture(GL_TEXTURE_2D, texture2);
-	// Establecemos las opciones de texture wrapping/filtering (en el objeto textura vínculado)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// Cargamos la imagen que queremos acoplar a la textura
-	data = stbi_load("C:/Users/Unreal DEP/Documents/LibraryNexus/textures/awesomeface.png", &width, &height, &nrChannels, 0);
-
-	if (data)
-	{
-		// Generamos la textura usando los datos de la imagen previamente cargada
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		std::cout << glGetError() << std::endl;
-
-		// Generamos el MipMap
-		glGenerateMipmap(GL_TEXTURE_2D);
-		std::cout << glGetError() << std::endl;
-
-		std::cout << "Texture 2 loaded succesfully" << std::endl;
-	}
-	else
-	{
-		std::cout << "Failed to load texture 2" << std::endl;
-	}
-
-	// Liberamos la memoria asignada a la imagen
-	stbi_image_free(data);
+	// .:: Mapa difuso (diffuse map) ::.
+	unsigned int diffuseMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2.png");
+	// .:: Mapa especular ::.
+	unsigned int specularMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2_specular.png");
+	
+	// .:: Textura 2 ::.
+	unsigned int texture2 = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/awesomeface.png");
 	//....................................
 
+	
 	// .: Le decimos a OpenGL que por cada sampler a que texture unit pertenece :.
 	cubeShader.use();												// Hay que activar el shader antes de configurar uniforms
-	glUniform1i(glGetUniformLocation(cubeShader.ID, "texture1"), 0);	// set it manually
-	cubeShader.setInt("texture2", 1);							    // set it with shader class
+	cubeShader.setInt("material.diffuse",  0);						
+	cubeShader.setInt("material.specular", 1);
+	cubeShader.setInt("texture2", 2);							    // set it with shader class
 
 	// .: Model Matrix :.
 	glm::mat4 model, view, projection;
@@ -290,11 +227,16 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 		// .:. Textura .:.
-		// - Enlazamos la textura
+		// - Enlazamos las texturas
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture1);
+		glBindTexture(GL_TEXTURE_2D, diffuseMap);
+		
 		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
+
+		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, texture2);
+		
 
 		// .:. Shaders .:.
 		// .:: Cube Shader ::.
@@ -302,25 +244,23 @@ int main()
 
 		// .: Light :.
 		// . Change color by time .
+		/*
 		glm::vec3 lightColor;
 		lightColor.x = sin(glfwGetTime() * 2.0f);
 		lightColor.y = sin(glfwGetTime() * 0.7f);
 		lightColor.z = sin(glfwGetTime() * 1.3f);
+		*/
+		glm::vec3 diffuseColor = glm::vec3(0.5f);
+		glm::vec3 ambientColor = glm::vec3(0.2f);
 
-		glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-		glm::vec3 ambientColor = diffuseColor * glm::vec3(0.5f);
-
-		cubeShader.setFloat3("lightPos", lightPos.x, lightPos.y, lightPos.z);
+		cubeShader.setFloat3("light.position", lightPos.x, lightPos.y, lightPos.z);
 		cubeShader.setFloat3("light.ambient", ambientColor.x, ambientColor.y, ambientColor.z);
 		cubeShader.setFloat3("light.diffuse", diffuseColor.x, diffuseColor.y, diffuseColor.z);
-
 		cubeShader.setFloat3("light.specular", 1.0f, 1.0f, 1.0f);
 		
 		
 
 		// .:: Material Color ::.
-		cubeShader.setFloat3("material.ambient", 1.0f, 0.5f, 0.31f);
-		cubeShader.setFloat3("material.diffuse", 1.0f, 0.5f, 0.31f);
 		cubeShader.setFloat3("material.specular", 0.5f, 0.5f, 0.5f);
 		cubeShader.setFloat("material.shininess", 32.0f);
 
@@ -463,4 +403,50 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	fov -= (float)yoffset;
 	if (fov < 1.0f) fov = 1.0f;
 	if (fov > 45.0f) fov = 45.0f;
+}
+
+// Funcion utilitaria para cargar texturas 2D desde un archivo
+//---------------------------------------------------------------
+unsigned int loadTexture(char const* path)
+{
+	// .: Creamos la textura :.
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+
+	//Cargamos la imagen que queremos acoplar a la textura
+	int width, height, nrComponents;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+	
+	if (data) {
+		GLenum format;
+		if (nrComponents == 1)
+			format = GL_RED;
+		else if (nrComponents == 3)
+			format = GL_RGB;
+		else if (nrComponents == 4)
+			format = GL_RGBA;
+
+		// Enlazamos la textura
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		// Generamos la textura usando los datos de la imagen previamente cargada
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		// Generamos el MipMap
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		// Establecemos las opciones de texture wrapping/filtering (en el objeto textura vínculado)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// Liberamos la memoria asignada a la imagen
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Texture failed to load at path: " << path << std::endl;
+		stbi_image_free(data);
+	}
+
+	return textureID;
 }
