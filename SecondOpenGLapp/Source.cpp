@@ -209,6 +209,10 @@ int main()
 	// .:: Activamos el Depth testing ::.
 	glEnable(GL_DEPTH_TEST);
 
+	// .: Light Casters
+	// Movemos la luz ambiental hacia donde toca
+	lightPos = glm::vec3(-0.2f, -1.0f, -0.3f);
+
 	// .::: Loop de renderizado :::.
 	while (!glfwWindowShouldClose(window))
 	{
@@ -222,7 +226,7 @@ int main()
 
 		// .:. comandos de renderizado aquí. .:.
 		// .:: ColorBuffer  ::.
-		// Limpiamos el búfer de color (colorbuffer)
+		// - Limpiamos el búfer de color (colorbuffer)
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
@@ -237,50 +241,52 @@ int main()
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, texture2);
 		
-
-		// .:. Shaders .:.
-		// .:: Cube Shader ::.
+		// .::. Shaders .::.
+		// .::: Cube Shader :::.
 		cubeShader.use();
 
 		// .: Light :.
-		// . Change color by time .
-		/*
-		glm::vec3 lightColor;
-		lightColor.x = sin(glfwGetTime() * 2.0f);
-		lightColor.y = sin(glfwGetTime() * 0.7f);
-		lightColor.z = sin(glfwGetTime() * 1.3f);
-		*/
 		glm::vec3 diffuseColor = glm::vec3(0.5f);
 		glm::vec3 ambientColor = glm::vec3(0.2f);
 
-		cubeShader.setFloat3("light.position", lightPos.x, lightPos.y, lightPos.z);
+		cubeShader.setFloat3("light.direction", lightPos.x, lightPos.y, lightPos.z);
 		cubeShader.setFloat3("light.ambient", ambientColor.x, ambientColor.y, ambientColor.z);
 		cubeShader.setFloat3("light.diffuse", diffuseColor.x, diffuseColor.y, diffuseColor.z);
 		cubeShader.setFloat3("light.specular", 1.0f, 1.0f, 1.0f);
-		
-		
 
 		// .:: Material Color ::.
-		cubeShader.setFloat3("material.specular", 0.5f, 0.5f, 0.5f);
 		cubeShader.setFloat("material.shininess", 32.0f);
 
 		// .:: Model - View - Projection ::.
-		// .: Model :.
-		model = glm::mat4(1.0f);
-		cubeShader.setMat4("model", model);
+
 		// .: View :. 
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 		cubeShader.setMat4("view", view);
+
 		//.: Projection :.
 		projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		cubeShader.setMat4("projection", projection);
 		//.: Camera position vector :.
 		cubeShader.setFloat3("viewPos", cameraPos.x, cameraPos.y, cameraPos.z);
-		// .: Renderizamos el cubo
+		
+		// .: Enlazamos el VAO :.
 		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		// .: Light Shader :.
+		// .:Renderizamos los cubos :.
+		for (unsigned int i = 0; i < 10; i++) 
+		{
+			// .: Model :.
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			float angle = 20.0f * i;
+			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			cubeShader.setMat4("model", model);
+
+			// .: Renderizamos el cubo
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+
+		// .:: Light Shader ::.
 		lightShader.use();
 		// .: Light :.
 		// .: Model :.
