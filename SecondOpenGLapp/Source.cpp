@@ -133,16 +133,23 @@ int main()
 	};
 
 	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3( 0.0f,  0.0f,  0.0f ),
+		glm::vec3( 2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f ),
 		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f)
+		glm::vec3( 2.4f, -0.4f, -3.5f ),
+		glm::vec3(-1.7f,  3.0f, -7.5f ),
+		glm::vec3( 1.3f, -2.0f, -2.5f ),
+		glm::vec3( 1.5f,  2.0f, -2.5f ),
+		glm::vec3( 1.5f,  0.2f, -1.5f ),
+		glm::vec3(-1.3f,  1.0f, -1.5f )
+	};
+
+	glm::vec3 pointLightPositions[] = {
+		glm::vec3( 0.7f,  0.2f,  2.0f ),
+		glm::vec3( 2.3f, -3.3f, -4.0f ),
+		glm::vec3(-4.0f,  2.0f, -12.0f),
+		glm::vec3( 0.0f,  0.0f, -3.0f )
 	};
 
 	// - VAOs & VBO - 
@@ -181,16 +188,13 @@ int main()
 
 	// Cualquier llamada al Búfer que hagamos se utilizará para configurar el bufer actualmente enlazado, un Element Buffer Object (EBO)
 	
-	// ...........:: Textura ::...........
+	// ...........:: Texturas ::...........
 	// .:: Mapa difuso (diffuse map) ::.
 	unsigned int diffuseMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2.png");
 	// .:: Mapa especular ::.
 	unsigned int specularMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2_specular.png");
-	
 	// .:: Textura 2 ::.
 	unsigned int texture2 = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/awesomeface.png");
-	//....................................
-
 	
 	// .: Le decimos a OpenGL que por cada sampler a que texture unit pertenece :.
 	cubeShader.use();												// Hay que activar el shader antes de configurar uniforms
@@ -205,8 +209,7 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	// .: Light Casters
-	// Movemos la luz ambiental hacia donde toca
-	//lightPos = glm::vec3(-0.2f, -1.0f, -0.3f);
+
 
 	// .::: Loop de renderizado :::.
 	while (!glfwWindowShouldClose(window))
@@ -223,34 +226,48 @@ int main()
 
 		// .:. Render .:.
 		// --------------
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		
 		// .:. Shaders .:.
 		// ---------------
 
 		// .::: CUBE SHADER :::.
 		cubeShader.use();
-
-		// .:: Light ::.
-		// .: Properties :.
-		cubeShader.setVecf3("light.position",  camera.Position);
-		cubeShader.setVecf3("light.direction", camera.Front);
-		cubeShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
-		cubeShader.setFloat("light.outerCutoff", glm::cos(glm::radians(17.5f)));
-
 		cubeShader.setVecf3("viewPos", camera.Position);
 
-		cubeShader.setFloat3("light.ambient", 0.2f, 0.2f, 0.2f);
-		cubeShader.setFloat3("light.diffuse", 0.5, 0.5, 0.5);
-		cubeShader.setFloat3("light.specular", 1.0f, 1.0f, 1.0f);
+		// .:: Light ::.
+		// .: Directional light :.
+		cubeShader.setFloat3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+		cubeShader.setFloat3("dirLight.ambient"  , 0.05f, 0.05f, 0.1f);
+		cubeShader.setFloat3("dirLight.diffuse"  , 0.2f, 0.2f, 0.7f);
+		cubeShader.setFloat3("dirLight.specular" ,  0.7f,  0.7f,  0.7f);
 
-		// . Attenuation .
-		cubeShader.setFloat("light.constant", 1.0f);
-		cubeShader.setFloat("light.linear",   0.09f);
-		cubeShader.setFloat("light.constant", 0.032f);
+		// .: Point Lights :. :: We can calculate each one separetly if we wan to tune each one.
+		for (int i = 0; i < 4; i++)
+		{
+			cubeShader.setVecf3("pointLights[" + std::to_string(i) + "].position",  pointLightPositions[i]);
+			cubeShader.setFloat3("pointLights[" + std::to_string(i) + "].ambient", 0.02f, 0.02f, 0.06f);
+			cubeShader.setFloat3("pointLights[" + std::to_string(i) + "].diffuse", 0.2f, 0.2f, 0.6f);
+			cubeShader.setFloat3("pointLighs[" + std::to_string(i) + "].specular", 0.2f, 0.2f, 0.6f);
+			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].constant",   1.0f);
+			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].linear",     0.09f);
+			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].quadratic",  0.032f);
+		}
 
-		//::::::::::::::::::::::::::::::::::::::::::::
+		// .: Spot Light :.
+		cubeShader.setVecf3("spotLight.position",    camera.Position);
+		cubeShader.setVecf3("spotLight.direction",   camera.Front);
+		cubeShader.setFloat3("spotLight.ambient",    0.0f, 0.0f, 0.0f);
+		cubeShader.setFloat3("spotLight.diffuse",    1.0f, 1.0f, 1.0f);
+		cubeShader.setFloat3("spotLight.specular",   1.0f, 1.0f, 1.0f);
+		cubeShader.setFloat("spotLight.constant",    1.0f);
+		cubeShader.setFloat("spotLight.linear",      0.009f);
+		cubeShader.setFloat("spotLight.quadratic",   0.0032f);
+		cubeShader.setFloat("spotLight.cutOff",      glm::cos(glm::radians(10.0f)));
+		cubeShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(12.5f)));
+
+		//------------------------------------------------
 		
 		// .:: Material ::.
 		// .: Properties :.
@@ -268,7 +285,7 @@ int main()
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
-		//::::::::::::::::::::::::::::::::::::::::::::
+		//------------------------------------------------
 		
 		// .:: View/Projection transformations::.
 		// .: View :. 
@@ -301,21 +318,29 @@ int main()
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
+		//::::::::::::::::::::::::::::::::::::::::::::
+
 		// .:: Light Shader ::.
+
 		lightShader.use();
-		// .: Light :.
-		// .: Model :.
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f));
-		lightShader.setMat4("model", model);
+		// .:: View/Projection transformations::.
 		// .: View :.
 		lightShader.setMat4("view", view);
 		// .: Projection :.
 		lightShader.setMat4("projection", projection);
-		// .: Render :.
+
+		// .: Model :.
 		glBindVertexArray(lightVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		for (unsigned int i = 0; i < 4; i++)
+		{
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, pointLightPositions[i]);
+			model = glm::scale(model, glm::vec3(0.2f));
+			lightShader.setMat4("model", model);
+
+			// .: Render :.
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
 
 		// .:: glfw: intercambia búfers y sondeo de eventos IO (teclas pulsadas/liberadas, raton moviendose, etc.
 		glfwSwapBuffers(window);
@@ -326,8 +351,6 @@ int main()
 	glDeleteVertexArrays(1, &cubeVAO);
 	glDeleteBuffers(1, &lightVAO);
 	glDeleteBuffers(1, &VBO);
-	
-	//glDeleteBuffers(1, &EBO);
 
 	// glfw: termina, limpiando todos los recursos GLFW previamente asignados.
 	glfwTerminate();
