@@ -34,8 +34,9 @@ bool firstMouse = true;
 float deltaTime = 0.0f; // time between current frame and last frame
 float lastFrame = 0.0f; 
 
-// lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+// SpotLight
+glm::vec3 spotlightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 spotlightFront(0.0f, 0.0f, -1.0f);
 
 int main()
 {
@@ -244,28 +245,30 @@ int main()
 		cubeShader.setFloat3("dirLight.specular" ,  0.7f,  0.7f,  0.7f);
 
 		// .: Point Lights :. :: We can calculate each one separetly if we wan to tune each one.
+		
 		for (int i = 0; i < 4; i++)
 		{
 			cubeShader.setVecf3("pointLights[" + std::to_string(i) + "].position",  pointLightPositions[i]);
 			cubeShader.setFloat3("pointLights[" + std::to_string(i) + "].ambient", 0.02f, 0.02f, 0.06f);
 			cubeShader.setFloat3("pointLights[" + std::to_string(i) + "].diffuse", 0.2f, 0.2f, 0.6f);
 			cubeShader.setFloat3("pointLighs[" + std::to_string(i) + "].specular", 0.2f, 0.2f, 0.6f);
+
 			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].constant",   1.0f);
 			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].linear",     0.09f);
 			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].quadratic",  0.032f);
 		}
 
 		// .: Spot Light :.
-		cubeShader.setVecf3("spotLight.position",    camera.Position);
-		cubeShader.setVecf3("spotLight.direction",   camera.Front);
+		cubeShader.setVecf3("spotLight.position",    spotlightPos);
+		cubeShader.setVecf3("spotLight.direction",   spotlightFront);
 		cubeShader.setFloat3("spotLight.ambient",    0.0f, 0.0f, 0.0f);
 		cubeShader.setFloat3("spotLight.diffuse",    1.0f, 1.0f, 1.0f);
 		cubeShader.setFloat3("spotLight.specular",   1.0f, 1.0f, 1.0f);
 		cubeShader.setFloat("spotLight.constant",    1.0f);
 		cubeShader.setFloat("spotLight.linear",      0.009f);
 		cubeShader.setFloat("spotLight.quadratic",   0.0032f);
-		cubeShader.setFloat("spotLight.cutOff",      glm::cos(glm::radians(10.0f)));
-		cubeShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(12.5f)));
+		cubeShader.setFloat("spotLight.cutOff",      glm::cos(glm::radians(25.0f)));
+		cubeShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(35.0f)));
 
 		//------------------------------------------------
 		
@@ -318,6 +321,8 @@ int main()
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
+		// .: Renderizamos una linternta :.
+		
 		//::::::::::::::::::::::::::::::::::::::::::::
 
 		// .:: Light Shader ::.
@@ -341,6 +346,14 @@ int main()
 			// .: Render :.
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
+
+		// Spotlight
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, spotlightPos);
+		model = glm::scale(model, glm::vec3(0.1f));
+		lightShader.setMat4("model", model);
+
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		// .:: glfw: intercambia búfers y sondeo de eventos IO (teclas pulsadas/liberadas, raton moviendose, etc.
 		glfwSwapBuffers(window);
@@ -377,17 +390,26 @@ void processInput(GLFWwindow* window)
 
 	//-------- Light Movement ---------
 	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-		lightPos.x -= cameraSpeed;
+		spotlightPos.x -= cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-		lightPos.x += cameraSpeed;
+		spotlightPos.x += cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
-		lightPos.y += cameraSpeed;
+		spotlightPos.y += cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
-		lightPos.y -=  cameraSpeed;
+		spotlightPos.y -=  cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-		lightPos.z -= cameraSpeed;
+		spotlightPos.z -= cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-		lightPos.z += cameraSpeed;
+		spotlightPos.z += cameraSpeed;
+
+	if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+		if (spotlightFront.x > -5.0) spotlightFront.x -= (cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+		if (spotlightFront.x <  5.0) spotlightFront.x += (cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
+		if (spotlightFront.y > -5.0) spotlightFront.y -= (cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
+		if (spotlightFront.y < 5.0) spotlightFront.y += (cameraSpeed);
 }
 
 // Función callback: Cada vez que el tamaño de la ventana varia (por el SO o un reescalado del usuario) se ejecuta este callback
