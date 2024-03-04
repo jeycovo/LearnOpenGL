@@ -210,8 +210,6 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 
 	// .: Light Casters
-
-
 	// .::: Loop de renderizado :::.
 	while (!glfwWindowShouldClose(window))
 	{
