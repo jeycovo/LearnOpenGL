@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream> // Sirve para std::cout y demás cosas de mostrar texto en pantalla.
 #include <SHADER/SHADER_H.h>
+#include <camera/camera.h>
 
 //#define STB_IMAGE_IMPLEMENTATION
 #include "STB/stb_image.h"
@@ -17,28 +18,25 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
+// .:: Utility Functions ::.
+unsigned int loadTexture(const char* path);
 //-- Settings --
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-//-- Camera --
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
-
+//-- Camera -
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
-float yaw	= -90.0f;
-float pitch	= 0.0f;
-float lastX	= 800.0f / 2.0;
-float lastY	= 600.0 / 2.0;
-float fov	= 45.0f;
 
 // timing
 float deltaTime = 0.0f; // time between current frame and last frame
 float lastFrame = 0.0f; 
 
-// lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+// SpotLight
+glm::vec3 spotlightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 spotlightFront(0.0f, 0.0f, -1.0f);
 
 int main()
 {
@@ -136,16 +134,23 @@ int main()
 	};
 
 	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3( 0.0f,  0.0f,  0.0f ),
+		glm::vec3( 2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f ),
 		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f)
+		glm::vec3( 2.4f, -0.4f, -3.5f ),
+		glm::vec3(-1.7f,  3.0f, -7.5f ),
+		glm::vec3( 1.3f, -2.0f, -2.5f ),
+		glm::vec3( 1.5f,  2.0f, -2.5f ),
+		glm::vec3( 1.5f,  0.2f, -1.5f ),
+		glm::vec3(-1.3f,  1.0f, -1.5f )
+	};
+
+	glm::vec3 pointLightPositions[] = {
+		glm::vec3( 0.7f,  0.2f,  2.0f ),
+		glm::vec3( 2.3f, -3.3f, -4.0f ),
+		glm::vec3(-4.0f,  2.0f, -12.0f),
+		glm::vec3( 0.0f,  0.0f, -3.0f )
 	};
 
 	// - VAOs & VBO - 
@@ -184,87 +189,19 @@ int main()
 
 	// Cualquier llamada al Búfer que hagamos se utilizará para configurar el bufer actualmente enlazado, un Element Buffer Object (EBO)
 	
-	// ...........:: Textura ::...........
-	// .:: Textura 1 ::.
-	// .: Creamos la textura y la vinculamos :.
-	unsigned int texture1;
-	glGenTextures(1, &texture1);
-	std::cout << glGetError() << std::endl;
-	glBindTexture(GL_TEXTURE_2D, texture1);
-	std::cout << glGetError() << std::endl;
-
-	// Establecemos las opciones de texture wrapping/filtering (en el objeto textura vínculado)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// .: Cargamos la imagen y generamos la textura :. 
-	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true);
-	// Cargamos la imagen que queremos acoplar a la textura
-	unsigned char* data = stbi_load("C:/Users/Unreal DEP/Documents/LibraryNexus/textures/container.jpg", &width, &height, &nrChannels, 0);
-
-	if (stbi_failure_reason()) {
-		std::cout << stbi_failure_reason() << std::endl;
-	}
-
-	if (data)
-	{
-		// Generamos la textura usando los datos de la imagen previamente cargada
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		std::cout << glGetError() << std::endl;
-
-		// Generamos el MipMap
-		glGenerateMipmap(GL_TEXTURE_2D);
-		std::cout << glGetError() << std::endl;
-
-		std::cout << "Texture 1 loaded succesfully" << std::endl;
-	}
-	else
-	{
-		std::cout << "Failed to load texture 1" << std::endl;
-	}
-
-	// .:: Textura 2) ::.
-	// .: Creamos la textura y la vinculamos :.
-	unsigned int texture2;
-	glGenTextures(1, &texture2);
-	glBindTexture(GL_TEXTURE_2D, texture2);
-	// Establecemos las opciones de texture wrapping/filtering (en el objeto textura vínculado)
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	// Cargamos la imagen que queremos acoplar a la textura
-	data = stbi_load("C:/Users/Unreal DEP/Documents/LibraryNexus/textures/awesomeface.png", &width, &height, &nrChannels, 0);
-
-	if (data)
-	{
-		// Generamos la textura usando los datos de la imagen previamente cargada
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		std::cout << glGetError() << std::endl;
-
-		// Generamos el MipMap
-		glGenerateMipmap(GL_TEXTURE_2D);
-		std::cout << glGetError() << std::endl;
-
-		std::cout << "Texture 2 loaded succesfully" << std::endl;
-	}
-	else
-	{
-		std::cout << "Failed to load texture 2" << std::endl;
-	}
-
-	// Liberamos la memoria asignada a la imagen
-	stbi_image_free(data);
-	//....................................
-
+	// ...........:: Texturas ::...........
+	// .:: Mapa difuso (diffuse map) ::.
+	unsigned int diffuseMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2.png");
+	// .:: Mapa especular ::.
+	unsigned int specularMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2_specular.png");
+	// .:: Textura 2 ::.
+	unsigned int texture2 = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/awesomeface.png");
+	
 	// .: Le decimos a OpenGL que por cada sampler a que texture unit pertenece :.
 	cubeShader.use();												// Hay que activar el shader antes de configurar uniforms
-	glUniform1i(glGetUniformLocation(cubeShader.ID, "texture1"), 0);	// set it manually
-	cubeShader.setInt("texture2", 1);							    // set it with shader class
+	cubeShader.setInt("material.diffuse",  0);						
+	cubeShader.setInt("material.specular", 1);
+	cubeShader.setInt("texture2", 2);							    // set it with shader class
 
 	// .: Model Matrix :.
 	glm::mat4 model, view, projection;
@@ -272,64 +209,148 @@ int main()
 	// .:: Activamos el Depth testing ::.
 	glEnable(GL_DEPTH_TEST);
 
+	// .: Light Casters
 	// .::: Loop de renderizado :::.
 	while (!glfwWindowShouldClose(window))
 	{
-		// .:. per-frame time logic
+		// .:. per-frame Time Logic .:.
+		// ----------------------------
 		float currentFrame = static_cast<float>(glfwGetTime());
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		// .:. input
+		// .:. Input .:.
+		// -------------
 		processInput(window);
 
-		// .:. comandos de renderizado aquí. .:.
-		// .:: ColorBuffer  ::.
-		// Limpiamos el búfer de color (colorbuffer)
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		// .:. Render .:.
+		// --------------
+		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		
+		// .:. Shaders .:.
+		// ---------------
 
-		// .:. Textura .:.
-		// - Enlazamos la textura
+		// .::: CUBE SHADER :::.
+		cubeShader.use();
+		cubeShader.setVecf3("viewPos", camera.Position);
+
+		// .:: Light ::.
+		// .: Directional light :.
+		cubeShader.setFloat3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+		cubeShader.setFloat3("dirLight.ambient"  , 0.05f, 0.05f, 0.1f);
+		cubeShader.setFloat3("dirLight.diffuse"  , 0.2f, 0.2f, 0.7f);
+		cubeShader.setFloat3("dirLight.specular" ,  0.7f,  0.7f,  0.7f);
+
+		// .: Point Lights :. :: We can calculate each one separetly if we wan to tune each one.
+		
+		for (int i = 0; i < 4; i++)
+		{
+			cubeShader.setVecf3("pointLights[" + std::to_string(i) + "].position",  pointLightPositions[i]);
+			cubeShader.setFloat3("pointLights[" + std::to_string(i) + "].ambient", 0.02f, 0.02f, 0.06f);
+			cubeShader.setFloat3("pointLights[" + std::to_string(i) + "].diffuse", 0.2f, 0.2f, 0.6f);
+			cubeShader.setFloat3("pointLighs[" + std::to_string(i) + "].specular", 0.2f, 0.2f, 0.6f);
+
+			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].constant",   1.0f);
+			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].linear",     0.09f);
+			cubeShader.setFloat("pointLights[" + std::to_string(i) + "].quadratic",  0.032f);
+		}
+
+		// .: Spot Light :.
+		cubeShader.setVecf3("spotLight.position",    spotlightPos);
+		cubeShader.setVecf3("spotLight.direction",   spotlightFront);
+		cubeShader.setFloat3("spotLight.ambient",    0.0f, 0.0f, 0.0f);
+		cubeShader.setFloat3("spotLight.diffuse",    1.0f, 1.0f, 1.0f);
+		cubeShader.setFloat3("spotLight.specular",   1.0f, 1.0f, 1.0f);
+		cubeShader.setFloat("spotLight.constant",    1.0f);
+		cubeShader.setFloat("spotLight.linear",      0.009f);
+		cubeShader.setFloat("spotLight.quadratic",   0.0032f);
+		cubeShader.setFloat("spotLight.cutOff",      glm::cos(glm::radians(25.0f)));
+		cubeShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(35.0f)));
+
+		//------------------------------------------------
+		
+		// .:: Material ::.
+		// .: Properties :.
+		cubeShader.setFloat("material.shininess", 32.0f);
+
+		// .: Textura :.
+		// - Enlazamos las texturas
+		// bind diffuse map
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture1);
+		glBindTexture(GL_TEXTURE_2D, diffuseMap);
+		// bind specular map
 		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, specularMap);
+		// bind smily texture
+		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(GL_TEXTURE_2D, texture2);
 
-		// .:. Shaders .:.
-		// .:: Cube Shader ::.
-		cubeShader.use();
-		// .: Light :.
-		cubeShader.setFloat3("objectColor", 1.0f, 0.5f, 0.31f);
-		cubeShader.setFloat3("lightColor" , 1.0f, 0.5f, 0.31f);
-		cubeShader.setFloat3("lightPos", lightPos.x, lightPos.y, lightPos.z);
-		// .: Model :.
-		model = glm::mat4(1.0f);
-		cubeShader.setMat4("model", model);
+		//------------------------------------------------
+		
+		// .:: View/Projection transformations::.
 		// .: View :. 
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		view = camera.GetViewMatrix();
 		cubeShader.setMat4("view", view);
-		//.: Projection :.
-		projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		cubeShader.setMat4("projection", projection);
-		// .: Renderizamos el cubo
-		glBindVertexArray(cubeVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		// .: Light Shader :.
+		//.: Projection :.
+		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		cubeShader.setMat4("projection", projection);
+		
+		//.: World transformation :.
+		cubeShader.setMat4("model", model);
+
+		//------------------------------------------------
+
+		// .: Enlazamos el VAO :.
+		glBindVertexArray(cubeVAO);
+
+		// .:Renderizamos los cubos :.
+		for (unsigned int i = 0; i < 10; i++) 
+		{
+			// .: Model :.
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, cubePositions[i]);
+			float angle = 20.0f * i;
+			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+			cubeShader.setMat4("model", model);
+
+			// .: Renderizamos el cubo
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+
+		// .: Renderizamos una linternta :.
+		
+		//::::::::::::::::::::::::::::::::::::::::::::
+
+		// .:: Light Shader ::.
+
 		lightShader.use();
-		// .: Light :.
-		// .: Model :.
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, lightPos);
-		model = glm::scale(model, glm::vec3(0.2f));
-		lightShader.setMat4("model", model);
+		// .:: View/Projection transformations::.
 		// .: View :.
 		lightShader.setMat4("view", view);
 		// .: Projection :.
 		lightShader.setMat4("projection", projection);
-		// .: Render :.
+
+		// .: Model :.
 		glBindVertexArray(lightVAO);
+		for (unsigned int i = 0; i < 4; i++)
+		{
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, pointLightPositions[i]);
+			model = glm::scale(model, glm::vec3(0.2f));
+			lightShader.setMat4("model", model);
+
+			// .: Render :.
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
+
+		// Spotlight
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, spotlightPos);
+		model = glm::scale(model, glm::vec3(0.1f));
+		lightShader.setMat4("model", model);
+
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		// .:: glfw: intercambia búfers y sondeo de eventos IO (teclas pulsadas/liberadas, raton moviendose, etc.
@@ -341,8 +362,6 @@ int main()
 	glDeleteVertexArrays(1, &cubeVAO);
 	glDeleteBuffers(1, &lightVAO);
 	glDeleteBuffers(1, &VBO);
-	
-	//glDeleteBuffers(1, &EBO);
 
 	// glfw: termina, limpiando todos los recursos GLFW previamente asignados.
 	glfwTerminate();
@@ -359,27 +378,36 @@ void processInput(GLFWwindow* window)
 	const float cameraSpeed = static_cast<float>(2.5 * deltaTime); //ajustado correctamente
 
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += cameraSpeed * cameraFront;
+		camera.ProcessKeyboard(FORWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos -= cameraSpeed * cameraFront;
+		camera.ProcessKeyboard(BACKWARD, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.ProcessKeyboard(LEFT, deltaTime);
 	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		camera.ProcessKeyboard(RIGHT, deltaTime);
 
 	//-------- Light Movement ---------
 	if (glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS)
-		lightPos.x -= cameraSpeed;
+		spotlightPos.x -= cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS)
-		lightPos.x += cameraSpeed;
+		spotlightPos.x += cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
-		lightPos.y += cameraSpeed;
+		spotlightPos.y += cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS)
-		lightPos.y -=  cameraSpeed;
+		spotlightPos.y -=  cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS)
-		lightPos.z -= cameraSpeed;
+		spotlightPos.z -= cameraSpeed;
 	if (glfwGetKey(window, GLFW_KEY_O) == GLFW_PRESS)
-		lightPos.z += cameraSpeed;
+		spotlightPos.z += cameraSpeed;
+
+	if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
+		if (spotlightFront.x > -5.0) spotlightFront.x -= (cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
+		if (spotlightFront.x <  5.0) spotlightFront.x += (cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_V) == GLFW_PRESS)
+		if (spotlightFront.y > -5.0) spotlightFront.y -= (cameraSpeed);
+	if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS)
+		if (spotlightFront.y < 5.0) spotlightFront.y += (cameraSpeed);
 }
 
 // Función callback: Cada vez que el tamaño de la ventana varia (por el SO o un reescalado del usuario) se ejecuta este callback
@@ -408,35 +436,58 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 	lastX = xpos;
 	lastY = ypos;
 
-	// .: 1.5 sensivity
-	float sensitivity = 0.1f;
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	// .:: 2. Add the offseet values to the camera's yaw and pitch values
-	yaw   += xoffset;
-	pitch += yoffset;
-
-	// .:: 3. Add some constraints to the minimum/maximum pitch values
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-
-	// .:: 4. Calculate the direction vector.
-	glm::vec3 direction;
-	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	direction.y = sin(glm::radians(pitch));
-	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(direction);
+	camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 
 // glfw: Siempre que la rueda del raton se haga scroll, este callback es llamado
 //-----------------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
-	fov -= (float)yoffset;
-	if (fov < 1.0f) fov = 1.0f;
-	if (fov > 45.0f) fov = 45.0f;
+	camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+// Funcion utilitaria para cargar texturas 2D desde un archivo
+//---------------------------------------------------------------
+unsigned int loadTexture(char const* path)
+{
+	// .: Creamos la textura :.
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+
+	//Cargamos la imagen que queremos acoplar a la textura
+	int width, height, nrComponents;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+	
+	if (data) {
+		GLenum format;
+		if (nrComponents == 1)
+			format = GL_RED;
+		else if (nrComponents == 3)
+			format = GL_RGB;
+		else if (nrComponents == 4)
+			format = GL_RGBA;
+
+		// Enlazamos la textura
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		// Generamos la textura usando los datos de la imagen previamente cargada
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		// Generamos el MipMap
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		// Establecemos las opciones de texture wrapping/filtering (en el objeto textura vínculado)
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// Liberamos la memoria asignada a la imagen
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Texture failed to load at path: " << path << std::endl;
+		stbi_image_free(data);
+	}
+
+	return textureID;
 }
