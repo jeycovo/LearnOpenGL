@@ -4,6 +4,7 @@
 #include <SHADER/SHADER_H.h>
 #include <camera/camera.h>
 
+
 //#define STB_IMAGE_IMPLEMENTATION
 #include "STB/stb_image.h"
 
@@ -209,7 +210,8 @@ int main()
 	// .:: Activamos el Depth testing ::.
 	glEnable(GL_DEPTH_TEST);
 
-	// .: Light Casters
+	// .: Mesh and sht
+	
 	// .::: Loop de renderizado :::.
 	while (!glfwWindowShouldClose(window))
 	{
