@@ -1,17 +1,19 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <iostream> // Sirve para std::cout y demás cosas de mostrar texto en pantalla.
+
+// Nuestras Clases
 #include <SHADER/SHADER_H.h>
 #include <camera/camera.h>
+#include "Model.h"
 
-
-//#define STB_IMAGE_IMPLEMENTATION
-#include "STB/stb_image.h"
+// Canales de texto
+#include <iostream> // Sirve para std::cout y demás cosas de mostrar texto en pantalla.
 
 // OpenGL Mathematics 
  #include <glm/glm.hpp>
  #include <glm/gtc/matrix_transform.hpp>
- #include <glm/gtc/type_ptr.hpp>
+ #include <glm/gtc/type_ptr.hpp>f
+ #include <filesystem>
 
 // .:: callbacks ::.
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -19,8 +21,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 
-// .:: Utility Functions ::.
-unsigned int loadTexture(const char* path);
 //-- Settings --
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -41,7 +41,6 @@ glm::vec3 spotlightFront(0.0f, 0.0f, -1.0f);
 
 int main()
 {
-
 	// .:: GLFW Config ::.
 	// .: glfw: Iniciamos GLFW y realizamos una configuración inicial :.
 	glfwInit();
@@ -64,7 +63,6 @@ int main()
 	}
 
 	glfwMakeContextCurrent(window);
-
 	// Setting Callbacks (window & cursor)
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // Registramos la función
 	glfwSetCursorPosCallback(window, mouse_callback);
@@ -80,71 +78,41 @@ int main()
 		return -1;
 	}
 	
+	// tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+	stbi_set_flip_vertically_on_load(true);
+
+	// Configure global opengl state
+	glEnable(GL_DEPTH_TEST);
+
 	// .:: Cursor ::.
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// .:: Viewport ::.
 	glViewport(0, 0, 800, 600);
 
-	// .:: Shader  :.
+	// .:: Shader  ::.
+	// ---------------
 	Shader cubeShader("C:/Users/Unreal DEP/Documents/LibraryNexus/shaders/shader.vs", "C:/Users/Unreal DEP/Documents/LibraryNexus/shaders/shader.fs");
 	Shader lightShader("C:/Users/Unreal DEP/Documents/LibraryNexus/shaders/shaderLight.vs", "C:/Users/Unreal DEP/Documents/LibraryNexus/shaders/shaderLight.fs");
 
-	float verticesCubo[] = {
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,	0.0f, 0.0f, -1.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,	0.0f, 0.0f, -1.0f,
-	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	0.0f, 0.0f, -1.0f,
-	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	0.0f, 0.0f, -1.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	0.0f, 0.0f, -1.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,	0.0f, 0.0f, -1.0f,
+	// .:: Modelos ::.
+	// ---------------
+	Model ourModel("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/backpack/backpack.obj");
+	
 
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	0.0f, 0.0f,  1.0f,
-	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	0.0f, 0.0f,  1.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,	0.0f, 0.0f,  1.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,	0.0f, 0.0f,  1.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,	0.0f, 0.0f,  1.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	0.0f, 0.0f,  1.0f,
-
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	-1.0f,  0.0f,  0.0f,
-	-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	-1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	-1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	-1.0f,  0.0f,  0.0f,
-	-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	-1.0f,  0.0f,  0.0f,
-
-	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	1.0f,  0.0f,  0.0f,
-
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	1.0f,  0.0f,  0.0f,
-	 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,	1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,	1.0f,  0.0f,  0.0f,
-	-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,	1.0f,  0.0f,  0.0f,
-
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	0.0f,  1.0f,  0.0f,
-	 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,	0.0f,  1.0f,  0.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	0.0f,  1.0f,  0.0f,
-	 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,	0.0f,  1.0f,  0.0f,
-	-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,	0.0f,  1.0f,  0.0f,
-	-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,	0.0f,  1.0f,  0.0f
-	};
-
-	glm::vec3 cubePositions[] = {
-		glm::vec3( 0.0f,  0.0f,  0.0f ),
-		glm::vec3( 2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f ),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3( 2.4f, -0.4f, -3.5f ),
-		glm::vec3(-1.7f,  3.0f, -7.5f ),
-		glm::vec3( 1.3f, -2.0f, -2.5f ),
-		glm::vec3( 1.5f,  2.0f, -2.5f ),
-		glm::vec3( 1.5f,  0.2f, -1.5f ),
-		glm::vec3(-1.3f,  1.0f, -1.5f )
+	float vertices[] = {
+		-0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  
+		 0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f, 
+		-0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  
+		 0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f, -0.5f,  0.5f, 
+		-0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f, -0.5f, 
+		-0.5f, -0.5f, -0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f, 
+		 0.5f,  0.5f,  0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  
+		 0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f,  0.5f, 
+		-0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f,  0.5f,  
+		 0.5f, -0.5f,  0.5f, -0.5f, -0.5f,  0.5f, -0.5f, -0.5f, -0.5f,  
+		-0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f,  0.5f, 
+		 0.5f,  0.5f,  0.5f, -0.5f,  0.5f,  0.5f, -0.5f,  0.5f, -0.5f, 
 	};
 
 	glm::vec3 pointLightPositions[] = {
@@ -154,64 +122,20 @@ int main()
 		glm::vec3( 0.0f,  0.0f, -3.0f )
 	};
 
-	// - VAOs & VBO - 
-	unsigned int VBO;
-	glGenBuffers(1, &VBO);
-	
-	// .:: cubeVAO
-	unsigned int cubeVAO;
-	glGenVertexArrays(1, &cubeVAO);
-	// 1. Vinculamos el Vertex Array Object
-	glBindVertexArray(cubeVAO);
-	// 2. Copiamos nuestro array de vértices en un búfer para OpenGL lo use
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesCubo), verticesCubo, GL_STATIC_DRAW);
-	// 3. Set our vertex attributes pointers
-	// 3.1 Position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// 3.2 Texture attribute
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	// 3.3 Normal Attribute
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(5 * sizeof(float)));
-	glEnableVertexAttribArray(2);
-	
 	// .: LightVAO
-	unsigned int lightVAO;
+	unsigned int VBO, lightVAO;
+	glGenBuffers(1, &VBO);
 	glGenVertexArrays(1, &lightVAO);
-	// 1.
+
+	//1.
 	glBindVertexArray(lightVAO);
-	// 2. Usamos el mismo VBO que el anterior
+	//2.
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	// 3. Only position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+	//3.
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
-	// Cualquier llamada al Búfer que hagamos se utilizará para configurar el bufer actualmente enlazado, un Element Buffer Object (EBO)
-	
-	// ...........:: Texturas ::...........
-	// .:: Mapa difuso (diffuse map) ::.
-	unsigned int diffuseMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2.png");
-	// .:: Mapa especular ::.
-	unsigned int specularMap = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/container2_specular.png");
-	// .:: Textura 2 ::.
-	unsigned int texture2 = loadTexture("C:/Users/Unreal DEP/Documents/LibraryNexus/resources/awesomeface.png");
-	
-	// .: Le decimos a OpenGL que por cada sampler a que texture unit pertenece :.
-	cubeShader.use();												// Hay que activar el shader antes de configurar uniforms
-	cubeShader.setInt("material.diffuse",  0);						
-	cubeShader.setInt("material.specular", 1);
-	cubeShader.setInt("texture2", 2);							    // set it with shader class
-
-	// .: Model Matrix :.
-	glm::mat4 model, view, projection;
-
-	// .:: Activamos el Depth testing ::.
-	glEnable(GL_DEPTH_TEST);
-
-	// .: Mesh and sht
-	
 	// .::: Loop de renderizado :::.
 	while (!glfwWindowShouldClose(window))
 	{
@@ -276,53 +200,26 @@ int main()
 		// .: Properties :.
 		cubeShader.setFloat("material.shininess", 32.0f);
 
-		// .: Textura :.
-		// - Enlazamos las texturas
-		// bind diffuse map
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, diffuseMap);
-		// bind specular map
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, specularMap);
-		// bind smily texture
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, texture2);
-
 		//------------------------------------------------
 		
 		// .:: View/Projection transformations::.
 		// .: View :. 
-		view = camera.GetViewMatrix();
+		glm::mat4 view = camera.GetViewMatrix();
 		cubeShader.setMat4("view", view);
 
 		//.: Projection :.
-		projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 		cubeShader.setMat4("projection", projection);
 		
 		//.: World transformation :.
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+		model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 		cubeShader.setMat4("model", model);
+		ourModel.Draw(cubeShader);
 
 		//------------------------------------------------
 
-		// .: Enlazamos el VAO :.
-		glBindVertexArray(cubeVAO);
-
-		// .:Renderizamos los cubos :.
-		for (unsigned int i = 0; i < 10; i++) 
-		{
-			// .: Model :.
-			model = glm::mat4(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			float angle = 20.0f * i;
-			model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-			cubeShader.setMat4("model", model);
-
-			// .: Renderizamos el cubo
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-
-		// .: Renderizamos una linternta :.
-		
 		//::::::::::::::::::::::::::::::::::::::::::::
 
 		// .:: Light Shader ::.
@@ -361,7 +258,6 @@ int main()
 	}
 
 	// Desasignamos todos los recursos una vez han superado su proposito
-	glDeleteVertexArrays(1, &cubeVAO);
 	glDeleteBuffers(1, &lightVAO);
 	glDeleteBuffers(1, &VBO);
 
